@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Page not found</title>
+<meta name="keywords" content="">
+<meta name="description" content="">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="dcterms.rights" content="SoundGator.com - Free Sound Effects &copy; All Rights Reserved">
+<meta name="robots" content="index">
+<meta name="robots" content="follow">
+<meta name="revisit-after" content="1 day">
+<link rel="shortcut icon" href="https://www.soundgator.com/assets/favicon.ico" type="image/x-icon">
+<script type="text/javascript" src="https://www.soundgator.com/assets/jquery.js"></script>
+<script type="text/javascript" src="https://www.soundgator.com/assets/global.js"></script>
+<link href="https://www.soundgator.com/view/front/themes/modern/cache/master_main.css" rel="stylesheet" type="text/css">
+<link id="styler" href="https://www.soundgator.com/view/front/themes/modern/css/_default.css" rel="stylesheet" type="text/css">
+<!-- audio player start -->
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+<!-- audio player end -->
+
+
+
+</head>
+<body>
+<header id="header">
+  <div class="wojo-grid">
+    <div class="top-bar">
+      <div class="row small gutters align middle">
+        <div class="columns screen-25 mobile-100 phone-100 logoColumn">
+          <a href="https://www.soundgator.com/" class="logo"><img src="https://www.soundgator.com/uploads/logo.png" alt="SoundGator.com - Free Sound Effects"></a>
+        </div>
+        <div class="columns screen-50 mobile-100 phone-100 wojo form">
+          <div class="wojo action rounded input">
+            <input placeholder="Search" type="text" id="masterSearch">
+            <button id="doSearch" type="submit" class="wojo simple button icon"><i class="icon find"></i></button>
+            <div id="searchResult"></div>
+          </div>
+        </div>
+        <div class="columns screen-25 mobile-100 phone-100 btnsColumn">
+          <div class="wojo white simple rounded buttons">
+
+                        <a href="https://www.soundgator.com/login/" class="wojo right button">Login<i class="icon user"></i></a>
+                      </div>
+                  </div>
+      </div>
+    </div>
+  </div>
+  <div class="navbar relative">
+    <div class="wojo-grid">
+      <div class="row horizontal gutters align middle">
+        <div class="columns auto hide-all" id="mobileToggle">
+          <a class="wojo transparent icon button menu-mobile"><i class="icon white reorder"></i></a>
+        </div>
+        <div class="columns">
+          <ul class="top-menu" id="main-menu">
+<li class="nav-item"><a href="https://www.soundgator.com/category/categories/" class="normal"><strong>Categories</strong></a><ul class="menu-submenu">
+<li class="nav-submenu-item"><a href="https://www.soundgator.com/category/buttons/" class="normal">Buttons</a></li>
+<li class="nav-submenu-item"><a href="https://www.soundgator.com/category/domestic/" class="normal">Domestic</a></li>
+<li class="nav-submenu-item"><a href="https://www.soundgator.com/category/human/" class="normal">Human</a></li>
+<li class="nav-submenu-item"><a href="https://www.soundgator.com/category/industrial/" class="normal">Industrial</a></li>
+<li class="nav-submenu-item"><a href="https://www.soundgator.com/category/interface/" class="normal">Interface</a></li>
+<li class="nav-submenu-item"><a href="https://www.soundgator.com/category/machines/" class="normal">Machines</a></li>
+<li class="nav-submenu-item"><a href="https://www.soundgator.com/category/miscellaneous/" class="normal">Miscellaneous</a></li>
+<li class="nav-submenu-item"><a href="https://www.soundgator.com/category/nature/" class="normal">Nature</a></li>
+<li class="nav-submenu-item"><a href="https://www.soundgator.com/category/transitions/" class="normal">Transitions</a></li>
+<li class="nav-submenu-item"><a href="https://www.soundgator.com/category/transportation/" class="normal">Transportation</a></li>
+<li class="nav-submenu-item"><a href="https://www.soundgator.com/category/urban/" class="normal">Urban</a></li>
+<li class="nav-submenu-item"><a href="https://www.soundgator.com/category/voice/" class="normal">Voices</a></li>
+</ul>
+</li>
+</ul>
+        </div>
+        <div class="columns auto relative">
+          <a class="wojo dark button cartButton"><i class="icon bag"></i><span id="cTotal">0</span></a>
+          <div id="cartList" data-duration="200" data-delay="20" class="wojo segment animate hide-all">
+            <div class="wojo very relaxed divided fluid list"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+<main>
+<div class="wojo-grid">
+<div class="wojo fof card">
+  <div class="content">
+    <p>Page Not Found</p>
+    <p>Error 404</p>
+  </div>
+</div></div>
+</main>
+
+<!-- Footer -->
+<footer>
+  <div class="wojo-grid">
+    <div class="row align middle small gutters">
+      <div class="columns auto phone-100">
+        <a href="https://www.soundgator.com/" class="logo"><img src="https://www.soundgator.com/uploads/logo.png" alt="SoundGator.com - Free Sound Effects"></a>
+      </div>
+      <div class="columns phone-100 right aligned">
+        <ul class="wojo horizontal fitted divided list">
+          <li class="item"><a class="grey" href="https://www.soundgator.com/content/license/"><strong>License</strong></a></li>
+          <li class="item"><a class="grey" href="https://www.soundgator.com/content/terms/"><strong>Terms</strong></a></li>
+          <li class="item"><a class="grey" href="https://www.soundgator.com/content/privacy/"><strong>Privacy</strong></a></li>
+          <li class="item"><a class="grey" href="https://www.soundgator.com/content/contact-us/"><strong>Contact Us</strong></a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="divider"></div>
+    <div class="row align middle small gutters">
+      <div class="columns phone-100">
+        <p class="wojo small text">Copyright &copy;2025 SoundGator.com</p>
+      </div>
+    </div>
+  </div>
+</footer>
+<script type="text/javascript" src="https://www.soundgator.com/view/front/themes/modern/js/master.js"></script>
+<script type="text/javascript">
+// <![CDATA[
+$(document).ready(function() {
+    $.Master({
+        weekstart: 1,
+		ampm: "1",
+		url: "https://www.soundgator.com/view/front",
+		surl: "https://www.soundgator.com",
+		theme: "https://www.soundgator.com/view/front/themes/modern",
+        lang: {
+            button_text: "Browse...",
+            empty_text: "No file...",
+            delBtn: "Delete Record",
+			trsBtn: "Move to Trash",
+			restBtn: "Restore Original",
+			canBtn: "Cancel",
+			popular: "Most Popular Questions",
+        }
+    });
+
+	});
+// ]]>
+</script>
+
+
+
+<!-- Start of Statcounter Code -->
+<script type="text/javascript">
+var sc_project=2885435;
+var sc_invisible=1;
+var sc_security="22c39169";
+</script>
+<script type="text/javascript"
+src="https://www.statcounter.com/counter/counter.js"
+async></script>
+<noscript><div class="statcounter"><a title="Web Analytics"
+href="https://statcounter.com/" target="_blank"><img
+class="statcounter"
+src="https://c.statcounter.com/2885435/0/22c39169/1/"
+alt="Web Analytics"
+referrerPolicy="no-referrer-when-downgrade"></a></div></noscript>
+<!-- End of Statcounter Code -->
+
+
+
+</body></html>
