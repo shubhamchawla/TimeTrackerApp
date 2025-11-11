@@ -29,14 +29,16 @@
             android:textColor="#6B7280"
             android:layout_marginBottom="24dp"/>
 
-        <!-- Interval Card -->
+        <!-- Interval Card - HIDDEN -->
         <com.google.android.material.card.MaterialCardView
+            android:id="@+id/intervalCard"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             app:cardCornerRadius="16dp"
             app:cardElevation="2dp"
             android:layout_marginBottom="16dp"
-            app:cardBackgroundColor="#FFFFFF">
+            app:cardBackgroundColor="#FFFFFF"
+            android:visibility="gone">
 
             <LinearLayout
                 android:layout_width="match_parent"

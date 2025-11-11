@@ -61,8 +61,23 @@ class SoundService : Service() {
                     soundResId = intent?.getIntExtra("soundResId", 0) ?: 0
                 }
                 createNotificationChannel()
+                
+                // Check if minute mark chimes are configured
+                val prefs = getSharedPreferences("MinuteMarkChimes", Context.MODE_PRIVATE)
+                val hasMinuteMarkChimes = listOf(0, 10, 20, 30, 40, 50).any { minute ->
+                    val name = prefs.getString("${minute}_name", null)
+                    val resourceId = prefs.getInt("${minute}_resourceId", 0)
+                    name != null && resourceId != -1
+                }
+                
                 val intervalText = when (intervalType) {
-                    "no_repeat" -> "once (no repeat)"
+                    "no_repeat" -> {
+                        if (hasMinuteMarkChimes) {
+                            "once (minute mark chimes active)"
+                        } else {
+                            "once (no repeat)"
+                        }
+                    }
                     "minute_mark" -> "at every ${interval}th minute"
                     "top_of_hour" -> "at top of every hour"
                     else -> "every $interval minutes"
@@ -152,10 +167,8 @@ class SoundService : Service() {
                 intent.putExtra("soundResId", soundResId)
             }
             
-            // Pass minute mark chime settings if using minute_mark or top_of_hour
-            if (intervalType == "minute_mark" || intervalType == "top_of_hour") {
-                copyMinuteMarkChimeSettings(intent)
-            }
+            // Always pass minute mark chime settings so hourly chimes work independently
+            copyMinuteMarkChimeSettings(intent)
 
             val flags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
@@ -268,8 +281,119 @@ class SoundService : Service() {
             if (intervalType != "no_repeat") {
                 broadcastNextRingTime(triggerTime)
             }
+            
+            // Schedule hourly minute mark chimes independently if configured
+            scheduleHourlyMinuteMarkChimes()
         } catch (e: Exception) {
             Log.e(TAG, "Error scheduling interval sound", e)
+            e.printStackTrace()
+        }
+    }
+    
+    private fun scheduleHourlyMinuteMarkChimes() {
+        try {
+            // Check if any minute mark chimes are configured
+            val prefs = getSharedPreferences("MinuteMarkChimes", Context.MODE_PRIVATE)
+            val hasAnyChime = listOf(0, 10, 20, 30, 40, 50).any { minute ->
+                prefs.getString("${minute}_name", null) != null
+            }
+            
+            if (!hasAnyChime) {
+                Log.d(TAG, "No minute mark chimes configured, skipping minute mark chime scheduling")
+                return
+            }
+            
+            val alarmManager = getSystemService(Context.ALARM_SERVICE) as? AlarmManager
+            if (alarmManager == null) {
+                Log.e(TAG, "AlarmManager is null")
+                return
+            }
+            
+            // Schedule an alarm for the next 10-minute mark (0, 10, 20, 30, 40, 50)
+            val intent = Intent(this, SoundReceiver::class.java)
+            intent.action = "ACTION_HOURLY_MINUTE_MARK_CHIME"
+            intent.putExtra("interval", 10)
+            intent.putExtra("intervalType", "minute_mark_chime")
+            intent.putExtra("isSystemSound", true)
+            intent.putExtra("soundType", RingtoneManager.TYPE_NOTIFICATION)
+            
+            // Copy minute mark chime settings
+            copyMinuteMarkChimeSettings(intent)
+            
+            val flags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            } else {
+                PendingIntent.FLAG_UPDATE_CURRENT
+            }
+            
+            // Use request code 100 to differentiate from main interval alarm
+            val pendingIntent = PendingIntent.getBroadcast(this, 100, intent, flags)
+            
+            // Calculate next 10-minute mark (0, 10, 20, 30, 40, 50)
+            val calendar = Calendar.getInstance()
+            val currentMinute = calendar.get(Calendar.MINUTE)
+            
+            // Find next 10-minute mark
+            val nextMinuteMark = when {
+                currentMinute < 10 -> 10
+                currentMinute < 20 -> 20
+                currentMinute < 30 -> 30
+                currentMinute < 40 -> 40
+                currentMinute < 50 -> 50
+                else -> 0 // Next hour at :00
+            }
+            
+            calendar.set(Calendar.SECOND, 0)
+            calendar.set(Calendar.MILLISECOND, 0)
+            
+            if (nextMinuteMark == 0) {
+                // Next mark is at top of next hour
+                calendar.add(Calendar.HOUR_OF_DAY, 1)
+                calendar.set(Calendar.MINUTE, 0)
+            } else {
+                calendar.set(Calendar.MINUTE, nextMinuteMark)
+            }
+            
+            val triggerTime = calendar.timeInMillis
+            
+            Log.d(TAG, "Scheduling initial minute mark chime at ${calendar.get(Calendar.HOUR_OF_DAY)}:${String.format("%02d", calendar.get(Calendar.MINUTE))}")
+            
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                val canScheduleExact = canScheduleExactAlarms(alarmManager)
+                try {
+                    if (canScheduleExact) {
+                        alarmManager.setExactAndAllowWhileIdle(
+                            AlarmManager.RTC_WAKEUP,
+                            triggerTime,
+                            pendingIntent
+                        )
+                        Log.d(TAG, "✓ Initial minute mark chime scheduled (exact) at ${calendar.get(Calendar.HOUR_OF_DAY)}:${String.format("%02d", calendar.get(Calendar.MINUTE))}")
+                    } else {
+                        alarmManager.set(
+                            AlarmManager.RTC_WAKEUP,
+                            triggerTime,
+                            pendingIntent
+                        )
+                        Log.d(TAG, "✓ Initial minute mark chime scheduled (inexact) at ${calendar.get(Calendar.HOUR_OF_DAY)}:${String.format("%02d", calendar.get(Calendar.MINUTE))}")
+                    }
+                } catch (e: SecurityException) {
+                    Log.w(TAG, "SecurityException: Cannot schedule exact minute mark chime, falling back to inexact", e)
+                    alarmManager.set(
+                        AlarmManager.RTC_WAKEUP,
+                        triggerTime,
+                        pendingIntent
+                    )
+                }
+            } else {
+                alarmManager.set(
+                    AlarmManager.RTC_WAKEUP,
+                    triggerTime,
+                    pendingIntent
+                )
+                Log.d(TAG, "✓ Initial minute mark chime scheduled at ${calendar.get(Calendar.HOUR_OF_DAY)}:${String.format("%02d", calendar.get(Calendar.MINUTE))}")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error scheduling minute mark chimes", e)
             e.printStackTrace()
         }
     }
@@ -457,13 +581,21 @@ class SoundService : Service() {
                 PendingIntent.FLAG_UPDATE_CURRENT
             }
 
+            // Cancel main interval alarm
             val intent = Intent(this, SoundReceiver::class.java)
             val pendingIntent = PendingIntent.getBroadcast(this, 0, intent, flags)
             alarmManager?.cancel(pendingIntent)
 
+            // Cancel daily alarm
             val customSoundIntent = Intent(this, SoundReceiver::class.java)
             val customSoundPendingIntent = PendingIntent.getBroadcast(this, 1, customSoundIntent, flags)
             alarmManager?.cancel(customSoundPendingIntent)
+            
+            // Cancel hourly minute mark chime alarm
+            val hourlyChimeIntent = Intent(this, SoundReceiver::class.java)
+            hourlyChimeIntent.action = "ACTION_HOURLY_MINUTE_MARK_CHIME"
+            val hourlyChimePendingIntent = PendingIntent.getBroadcast(this, 100, hourlyChimeIntent, flags)
+            alarmManager?.cancel(hourlyChimePendingIntent)
 
             Log.d(TAG, "All alarms cancelled")
         } catch (e: Exception) {

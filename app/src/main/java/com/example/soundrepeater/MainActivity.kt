@@ -137,7 +137,7 @@ class MainActivity : AppCompatActivity() {
         val intervalAdapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, intervals)
         intervalAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
         intervalSpinner.adapter = intervalAdapter
-        intervalSpinner.setSelection(2) // Default to 5 minutes
+        intervalSpinner.setSelection(0) // Default to "No repeat"
 
         // Sound Spinner - Use available sounds
         val soundNames = availableSounds.map { it.name }.toTypedArray()
@@ -236,10 +236,8 @@ class MainActivity : AppCompatActivity() {
                 intent.putExtra("soundResId", selectedSound.resourceId)
             }
             
-            // Pass minute mark chime settings if using minute_mark or top_of_hour
-            if (intervalType == "minute_mark" || intervalType == "top_of_hour") {
-                passMinuteMarkChimeSettings(intent)
-            }
+            // Always pass minute mark chime settings so hourly chimes work independently
+            passMinuteMarkChimeSettings(intent)
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 startForegroundService(intent)
@@ -249,8 +247,20 @@ class MainActivity : AppCompatActivity() {
 
             isServiceRunning = true
             updateUI()
+            
+            // Check if minute mark chimes are configured
+            val hasMinuteMarkChimes = minuteMarkChimeSounds.any { (_, sound) -> 
+                sound.resourceId != -1 
+            }
+            
             val intervalText = when (intervalType) {
-                "no_repeat" -> "once (no repeat)"
+                "no_repeat" -> {
+                    if (hasMinuteMarkChimes) {
+                        "once (minute mark chimes active)"
+                    } else {
+                        "once (no repeat)"
+                    }
+                }
                 "minute_mark" -> "at every ${intervalMinutes}th minute"
                 "top_of_hour" -> "at top of every hour"
                 else -> "every $intervalMinutes minutes"
@@ -261,8 +271,14 @@ class MainActivity : AppCompatActivity() {
             if (intervalType != "no_repeat") {
                 updateNextRingTime(intervalMinutes)
             } else {
-                nextRingText.text = "Sound will play once"
-                nextRingText.visibility = android.view.View.VISIBLE
+                // For "no repeat", show next minute mark chime if configured
+                val nextMinuteMarkTime = getNextMinuteMarkChimeTime()
+                if (nextMinuteMarkTime != null) {
+                    updateNextRingTimeDisplay(nextMinuteMarkTime)
+                } else {
+                    nextRingText.text = "Sound will play once"
+                    nextRingText.visibility = android.view.View.VISIBLE
+                }
             }
             
             Toast.makeText(this, "Service started successfully", Toast.LENGTH_SHORT).show()
@@ -784,8 +800,20 @@ class MainActivity : AppCompatActivity() {
 
             isServiceRunning = true
             updateUI()
+            
+            // Check if minute mark chimes are configured
+            val hasMinuteMarkChimes = minuteMarkChimeSounds.any { (_, sound) -> 
+                sound.resourceId != -1 
+            }
+            
             val intervalText = when (intervalType) {
-                "no_repeat" -> "once (no repeat)"
+                "no_repeat" -> {
+                    if (hasMinuteMarkChimes) {
+                        "once (minute mark chimes active)"
+                    } else {
+                        "once (no repeat)"
+                    }
+                }
                 "minute_mark" -> "at every ${intervalMinutes}th minute"
                 "top_of_hour" -> "at top of every hour"
                 else -> "every $intervalMinutes minutes"
@@ -794,8 +822,14 @@ class MainActivity : AppCompatActivity() {
             if (intervalType != "no_repeat") {
                 updateNextRingTime(intervalMinutes)
             } else {
-                nextRingText.text = "Sound will play once"
-                nextRingText.visibility = android.view.View.VISIBLE
+                // For "no repeat", show next minute mark chime if configured
+                val nextMinuteMarkTime = getNextMinuteMarkChimeTime()
+                if (nextMinuteMarkTime != null) {
+                    updateNextRingTimeDisplay(nextMinuteMarkTime)
+                } else {
+                    nextRingText.text = "Sound will play once"
+                    nextRingText.visibility = android.view.View.VISIBLE
+                }
             }
             Toast.makeText(this, "Service started with inexact alarms (may be less accurate)", Toast.LENGTH_LONG).show()
         } catch (e: Exception) {
@@ -814,6 +848,48 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun getNextMinuteMarkChimeTime(): Long? {
+        // Check if any minute mark chimes are configured
+        if (minuteMarkChimeSounds.isEmpty()) {
+            return null
+        }
+        
+        val calendar = Calendar.getInstance()
+        val currentMinute = calendar.get(Calendar.MINUTE)
+        val currentHour = calendar.get(Calendar.HOUR_OF_DAY)
+        
+        // List of possible minute marks
+        val minuteMarks = listOf(0, 10, 20, 30, 40, 50)
+        
+        // Find configured minute marks that have a sound set (not "No Sound")
+        val configuredMinutes = minuteMarks.filter { minute ->
+            val sound = minuteMarkChimeSounds[minute]
+            sound != null && sound.resourceId != -1
+        }
+        
+        if (configuredMinutes.isEmpty()) {
+            return null
+        }
+        
+        // Find the next configured minute mark
+        val nextMinute = configuredMinutes.firstOrNull { it > currentMinute }
+        
+        return if (nextMinute != null) {
+            // Next minute mark is in the current hour
+            calendar.set(Calendar.MINUTE, nextMinute)
+            calendar.set(Calendar.SECOND, 0)
+            calendar.set(Calendar.MILLISECOND, 0)
+            calendar.timeInMillis
+        } else {
+            // Next minute mark is in the next hour
+            calendar.add(Calendar.HOUR_OF_DAY, 1)
+            calendar.set(Calendar.MINUTE, configuredMinutes.first())
+            calendar.set(Calendar.SECOND, 0)
+            calendar.set(Calendar.MILLISECOND, 0)
+            calendar.timeInMillis
+        }
+    }
+    
     private fun passMinuteMarkChimeSettings(intent: Intent) {
         // Pass minute mark chime settings to the service
         minuteMarkChimeSounds.forEach { (minute, sound) ->
