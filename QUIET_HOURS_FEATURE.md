@@ -18,6 +18,7 @@ Added a "Quiet Hours" feature that allows users to set sleeping hours when sound
 3. **Persistent Settings**: Settings are saved using SharedPreferences
 4. **Smart Checking**: Before playing any sound, the app checks if current time falls within quiet hours
 5. **Alarm Continuity**: Alarms continue to reschedule even during quiet hours (they just don't play sounds)
+6. **Resumption Alert**: The first notification after quiet hours ends will play as an **Alarm** type sound (instead of standard notification) to ensure you are alerted that quiet hours have ended.
 
 ### Technical Implementation
 
