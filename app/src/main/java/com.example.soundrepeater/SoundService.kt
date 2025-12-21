@@ -183,9 +183,11 @@ class SoundService : Service() {
 
             when (intervalType) {
                 "no_repeat" -> {
-                    // Play sound immediately and don't schedule repeat
-                    triggerTime = System.currentTimeMillis() + 1000L // 1 second from now
-                    Log.d(TAG, "No repeat: Scheduling one-time sound")
+                    // Don't schedule any alarm for no_repeat - only minute mark chimes will work
+                    Log.d(TAG, "No repeat: Not scheduling any alarm (minute mark chimes will work independently)")
+                    // Schedule hourly minute mark chimes independently if configured
+                    scheduleHourlyMinuteMarkChimes()
+                    return
                 }
                 "minute_mark" -> {
                     // Schedule at specific minute marks (e.g., :10, :20, :30, :40, :50)
@@ -295,13 +297,18 @@ class SoundService : Service() {
             // Check if any minute mark chimes are configured
             val prefs = getSharedPreferences("MinuteMarkChimes", Context.MODE_PRIVATE)
             val hasAnyChime = listOf(0, 10, 20, 30, 40, 50).any { minute ->
-                prefs.getString("${minute}_name", null) != null
+                val name = prefs.getString("${minute}_name", null)
+                val resourceId = prefs.getInt("${minute}_resourceId", 0)
+                Log.d(TAG, "Checking minute :$minute - name: $name, resourceId: $resourceId")
+                name != null && resourceId != -1
             }
             
             if (!hasAnyChime) {
                 Log.d(TAG, "No minute mark chimes configured, skipping minute mark chime scheduling")
                 return
             }
+            
+            Log.d(TAG, "✓ Minute mark chimes ARE configured, proceeding with scheduling")
             
             val alarmManager = getSystemService(Context.ALARM_SERVICE) as? AlarmManager
             if (alarmManager == null) {
@@ -358,31 +365,28 @@ class SoundService : Service() {
             
             Log.d(TAG, "Scheduling initial minute mark chime at ${calendar.get(Calendar.HOUR_OF_DAY)}:${String.format("%02d", calendar.get(Calendar.MINUTE))}")
             
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                val canScheduleExact = canScheduleExactAlarms(alarmManager)
+            // Use setAlarmClock for highest priority - bypasses Doze and all restrictions
+            // This ensures minute mark chimes fire at the exact time
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
                 try {
-                    if (canScheduleExact) {
-                        alarmManager.setExactAndAllowWhileIdle(
-                            AlarmManager.RTC_WAKEUP,
-                            triggerTime,
-                            pendingIntent
-                        )
-                        Log.d(TAG, "✓ Initial minute mark chime scheduled (exact) at ${calendar.get(Calendar.HOUR_OF_DAY)}:${String.format("%02d", calendar.get(Calendar.MINUTE))}")
+                    val showIntent = Intent(this, MainActivity::class.java)
+                    val showPendingIntent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                        PendingIntent.getActivity(this, 0, showIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
                     } else {
-                        alarmManager.set(
-                            AlarmManager.RTC_WAKEUP,
-                            triggerTime,
-                            pendingIntent
-                        )
-                        Log.d(TAG, "✓ Initial minute mark chime scheduled (inexact) at ${calendar.get(Calendar.HOUR_OF_DAY)}:${String.format("%02d", calendar.get(Calendar.MINUTE))}")
+                        PendingIntent.getActivity(this, 0, showIntent, PendingIntent.FLAG_UPDATE_CURRENT)
                     }
-                } catch (e: SecurityException) {
-                    Log.w(TAG, "SecurityException: Cannot schedule exact minute mark chime, falling back to inexact", e)
-                    alarmManager.set(
-                        AlarmManager.RTC_WAKEUP,
-                        triggerTime,
-                        pendingIntent
-                    )
+                    
+                    val alarmClockInfo = AlarmManager.AlarmClockInfo(triggerTime, showPendingIntent)
+                    alarmManager.setAlarmClock(alarmClockInfo, pendingIntent)
+                    Log.d(TAG, "✓ Initial minute mark chime scheduled (HIGH PRIORITY - setAlarmClock) at ${calendar.get(Calendar.HOUR_OF_DAY)}:${String.format("%02d", calendar.get(Calendar.MINUTE))}")
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed to use setAlarmClock, falling back", e)
+                    // Fallback to exact alarm
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                        alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent)
+                    } else {
+                        alarmManager.set(AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent)
+                    }
                 }
             } else {
                 alarmManager.set(
@@ -550,14 +554,17 @@ class SoundService : Service() {
         // Load minute mark chime settings from SharedPreferences and copy to intent
         val prefs = getSharedPreferences("MinuteMarkChimes", Context.MODE_PRIVATE)
         
+        Log.d(TAG, "=== Copying Minute Mark Chime Settings ===")
         listOf(0, 10, 20, 30, 40, 50).forEach { minute ->
             val isSystemSound = prefs.getBoolean("${minute}_isSystemSound", true)
             val resourceId = prefs.getInt("${minute}_resourceId", 0)
             val name = prefs.getString("${minute}_name", null)
+            val customUri = prefs.getString("${minute}_customUri", null)
             
             if (name != null) {
                 intent.putExtra("minute${minute}_isSystemSound", isSystemSound)
                 intent.putExtra("minute${minute}_resourceId", resourceId)
+                intent.putExtra("minute${minute}_customUri", customUri)
                 if (isSystemSound) {
                     val soundType = when (resourceId) {
                         0 -> RingtoneManager.TYPE_NOTIFICATION
@@ -567,8 +574,12 @@ class SoundService : Service() {
                     }
                     intent.putExtra("minute${minute}_soundType", soundType)
                 }
+                Log.d(TAG, "✓ Copied settings for :$minute - name: $name, isSystem: $isSystemSound, resId: $resourceId")
+            } else {
+                Log.d(TAG, "  Skipped :$minute (no name configured)")
             }
         }
+        Log.d(TAG, "=== End Copying Settings ===")
     }
 
     private fun cancelAlarms() {

@@ -16,6 +16,7 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.provider.Settings
+import android.util.Log
 import android.animation.Animator
 import android.animation.AnimatorListenerAdapter
 import android.view.View
@@ -39,6 +40,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var customTimeButton: MaterialButton
     private lateinit var minuteMarkChimeButton: MaterialButton
     private lateinit var hourlyChimeButton: MaterialButton
+    private lateinit var quietHoursButton: MaterialButton
     private lateinit var testSoundButton: MaterialButton
     private lateinit var statusText: TextView
     private lateinit var nextRingText: TextView
@@ -52,6 +54,17 @@ class MainActivity : AppCompatActivity() {
     private var availableSounds = mutableListOf<SoundInfo>()
     private val hourlyChimeSounds = mutableMapOf<Int, Int>() // hour -> sound resource ID
     private val minuteMarkChimeSounds = mutableMapOf<Int, SoundInfo>() // minute mark (10,20,30,40,50,0) -> SoundInfo
+    private var currentMinuteMarkForPicker: Int = -1 // Track which minute mark is being customized
+    
+    private val soundPickerLauncher = registerForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == android.app.Activity.RESULT_OK) {
+            result.data?.data?.let { uri ->
+                handleCustomSoundSelected(uri)
+            }
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -91,6 +104,7 @@ class MainActivity : AppCompatActivity() {
         customTimeButton = findViewById(R.id.customTimeButton)
         minuteMarkChimeButton = findViewById(R.id.minuteMarkChimeButton)
         hourlyChimeButton = findViewById(R.id.hourlyChimeButton)
+        quietHoursButton = findViewById(R.id.quietHoursButton)
         testSoundButton = findViewById(R.id.testSoundButton)
         statusText = findViewById(R.id.statusText)
         nextRingText = findViewById(R.id.nextRingText)
@@ -98,7 +112,12 @@ class MainActivity : AppCompatActivity() {
         loadAvailableSounds()
     }
     
-    data class SoundInfo(val name: String, val resourceId: Int, val isSystemSound: Boolean)
+    data class SoundInfo(
+        val name: String, 
+        val resourceId: Int, 
+        val isSystemSound: Boolean,
+        val customUri: String? = null  // For custom sounds from system picker
+    )
     
     private fun loadAvailableSounds() {
         availableSounds.clear()
@@ -169,6 +188,10 @@ class MainActivity : AppCompatActivity() {
 
         hourlyChimeButton.setOnClickListener {
             showHourlyChimeDialog()
+        }
+
+        quietHoursButton.setOnClickListener {
+            showQuietHoursDialog()
         }
 
         testSoundButton.setOnClickListener {
@@ -444,6 +467,13 @@ class MainActivity : AppCompatActivity() {
         val spinner50 = dialogView.findViewById<Spinner>(R.id.spinner50thMinute)
         val spinnerTop = dialogView.findViewById<Spinner>(R.id.spinnerTopOfHour)
         
+        val browse10 = dialogView.findViewById<Button>(R.id.browse10thMinute)
+        val browse20 = dialogView.findViewById<Button>(R.id.browse20thMinute)
+        val browse30 = dialogView.findViewById<Button>(R.id.browse30thMinute)
+        val browse40 = dialogView.findViewById<Button>(R.id.browse40thMinute)
+        val browse50 = dialogView.findViewById<Button>(R.id.browse50thMinute)
+        val browseTop = dialogView.findViewById<Button>(R.id.browseTopOfHour)
+        
         val soundNames = availableSounds.map { it.name }.toTypedArray()
         val adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, soundNames)
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
@@ -455,40 +485,84 @@ class MainActivity : AppCompatActivity() {
         
         // Set previously selected sounds if they exist
         minuteMarkChimeSounds[10]?.let { sound ->
-            val index = availableSounds.indexOf(sound)
-            if (index >= 0) spinner10.setSelection(index)
+            if (sound.customUri == null) {
+                val index = availableSounds.indexOfFirst { 
+                    it.name == sound.name && it.resourceId == sound.resourceId 
+                }
+                if (index >= 0) spinner10.setSelection(index)
+            }
         }
         minuteMarkChimeSounds[20]?.let { sound ->
-            val index = availableSounds.indexOf(sound)
-            if (index >= 0) spinner20.setSelection(index)
+            if (sound.customUri == null) {
+                val index = availableSounds.indexOfFirst { 
+                    it.name == sound.name && it.resourceId == sound.resourceId 
+                }
+                if (index >= 0) spinner20.setSelection(index)
+            }
         }
         minuteMarkChimeSounds[30]?.let { sound ->
-            val index = availableSounds.indexOf(sound)
-            if (index >= 0) spinner30.setSelection(index)
+            if (sound.customUri == null) {
+                val index = availableSounds.indexOfFirst { 
+                    it.name == sound.name && it.resourceId == sound.resourceId 
+                }
+                if (index >= 0) spinner30.setSelection(index)
+            }
         }
         minuteMarkChimeSounds[40]?.let { sound ->
-            val index = availableSounds.indexOf(sound)
-            if (index >= 0) spinner40.setSelection(index)
+            if (sound.customUri == null) {
+                val index = availableSounds.indexOfFirst { 
+                    it.name == sound.name && it.resourceId == sound.resourceId 
+                }
+                if (index >= 0) spinner40.setSelection(index)
+            }
         }
         minuteMarkChimeSounds[50]?.let { sound ->
-            val index = availableSounds.indexOf(sound)
-            if (index >= 0) spinner50.setSelection(index)
+            if (sound.customUri == null) {
+                val index = availableSounds.indexOfFirst { 
+                    it.name == sound.name && it.resourceId == sound.resourceId 
+                }
+                if (index >= 0) spinner50.setSelection(index)
+            }
         }
         minuteMarkChimeSounds[0]?.let { sound ->
-            val index = availableSounds.indexOf(sound)
-            if (index >= 0) spinnerTop.setSelection(index)
+            if (sound.customUri == null) {
+                val index = availableSounds.indexOfFirst { 
+                    it.name == sound.name && it.resourceId == sound.resourceId 
+                }
+                if (index >= 0) spinnerTop.setSelection(index)
+            }
         }
         
-        AlertDialog.Builder(this)
+        // Setup browse button click listeners
+        browse10.setOnClickListener { openSoundPicker(10) }
+        browse20.setOnClickListener { openSoundPicker(20) }
+        browse30.setOnClickListener { openSoundPicker(30) }
+        browse40.setOnClickListener { openSoundPicker(40) }
+        browse50.setOnClickListener { openSoundPicker(50) }
+        browseTop.setOnClickListener { openSoundPicker(0) }
+        
+        val dialog = AlertDialog.Builder(this)
             .setView(dialogView)
             .setPositiveButton("Save") { _, _ ->
-                // Save minute mark chime settings
-                minuteMarkChimeSounds[10] = availableSounds[spinner10.selectedItemPosition]
-                minuteMarkChimeSounds[20] = availableSounds[spinner20.selectedItemPosition]
-                minuteMarkChimeSounds[30] = availableSounds[spinner30.selectedItemPosition]
-                minuteMarkChimeSounds[40] = availableSounds[spinner40.selectedItemPosition]
-                minuteMarkChimeSounds[50] = availableSounds[spinner50.selectedItemPosition]
-                minuteMarkChimeSounds[0] = availableSounds[spinnerTop.selectedItemPosition]
+                // Save minute mark chime settings (only from spinners if no custom sound was selected)
+                if (minuteMarkChimeSounds[10]?.customUri == null) {
+                    minuteMarkChimeSounds[10] = availableSounds[spinner10.selectedItemPosition]
+                }
+                if (minuteMarkChimeSounds[20]?.customUri == null) {
+                    minuteMarkChimeSounds[20] = availableSounds[spinner20.selectedItemPosition]
+                }
+                if (minuteMarkChimeSounds[30]?.customUri == null) {
+                    minuteMarkChimeSounds[30] = availableSounds[spinner30.selectedItemPosition]
+                }
+                if (minuteMarkChimeSounds[40]?.customUri == null) {
+                    minuteMarkChimeSounds[40] = availableSounds[spinner40.selectedItemPosition]
+                }
+                if (minuteMarkChimeSounds[50]?.customUri == null) {
+                    minuteMarkChimeSounds[50] = availableSounds[spinner50.selectedItemPosition]
+                }
+                if (minuteMarkChimeSounds[0]?.customUri == null) {
+                    minuteMarkChimeSounds[0] = availableSounds[spinnerTop.selectedItemPosition]
+                }
                 
                 // Save to SharedPreferences
                 saveMinuteMarkChimeSettings()
@@ -496,7 +570,9 @@ class MainActivity : AppCompatActivity() {
                 Toast.makeText(this, "Minute mark chime settings saved", Toast.LENGTH_SHORT).show()
             }
             .setNegativeButton("Cancel", null)
-            .show()
+            .create()
+        
+        dialog.show()
     }
     
     private fun saveMinuteMarkChimeSettings() {
@@ -507,6 +583,7 @@ class MainActivity : AppCompatActivity() {
             editor.putBoolean("${minute}_isSystemSound", sound.isSystemSound)
             editor.putInt("${minute}_resourceId", sound.resourceId)
             editor.putString("${minute}_name", sound.name)
+            editor.putString("${minute}_customUri", sound.customUri)
         }
         
         editor.apply()
@@ -519,11 +596,60 @@ class MainActivity : AppCompatActivity() {
             val isSystemSound = prefs.getBoolean("${minute}_isSystemSound", true)
             val resourceId = prefs.getInt("${minute}_resourceId", 0)
             val name = prefs.getString("${minute}_name", null)
+            val customUri = prefs.getString("${minute}_customUri", null)
             
             if (name != null) {
-                minuteMarkChimeSounds[minute] = SoundInfo(name, resourceId, isSystemSound)
+                minuteMarkChimeSounds[minute] = SoundInfo(name, resourceId, isSystemSound, customUri)
             }
         }
+    }
+    
+    private fun handleCustomSoundSelected(uri: Uri) {
+        if (currentMinuteMarkForPicker == -1) return
+        
+        try {
+            // Take persistable URI permission
+            contentResolver.takePersistableUriPermission(
+                uri,
+                Intent.FLAG_GRANT_READ_URI_PERMISSION
+            )
+            
+            // Get the sound name from the URI
+            val ringtone = RingtoneManager.getRingtone(this, uri)
+            val soundName = ringtone?.getTitle(this) ?: "Custom Sound"
+            
+            // Create a SoundInfo with custom URI
+            val customSound = SoundInfo(
+                name = soundName,
+                resourceId = -2, // Special value for custom URI sounds
+                isSystemSound = false,
+                customUri = uri.toString()
+            )
+            
+            // Save to minute mark chime sounds
+            minuteMarkChimeSounds[currentMinuteMarkForPicker] = customSound
+            
+            Toast.makeText(this, "Custom sound selected: $soundName", Toast.LENGTH_SHORT).show()
+        } catch (e: Exception) {
+            Log.e("MainActivity", "Error selecting custom sound", e)
+            Toast.makeText(this, "Error selecting sound: ${e.message}", Toast.LENGTH_SHORT).show()
+        }
+    }
+    
+    private fun openSoundPicker(minuteMark: Int) {
+        currentMinuteMarkForPicker = minuteMark
+        val intent = Intent(RingtoneManager.ACTION_RINGTONE_PICKER).apply {
+            putExtra(RingtoneManager.EXTRA_RINGTONE_TYPE, RingtoneManager.TYPE_ALL)
+            putExtra(RingtoneManager.EXTRA_RINGTONE_TITLE, "Select sound for :$minuteMark minute")
+            putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_SILENT, false)
+            putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_DEFAULT, true)
+            
+            // Set existing URI if available
+            minuteMarkChimeSounds[minuteMark]?.customUri?.let { uriString ->
+                putExtra(RingtoneManager.EXTRA_RINGTONE_EXISTING_URI, Uri.parse(uriString))
+            }
+        }
+        soundPickerLauncher.launch(intent)
     }
     
     private fun showHourlyChimeDialog() {
@@ -609,6 +735,7 @@ class MainActivity : AppCompatActivity() {
         customTimeButton.isEnabled = !isServiceRunning
         minuteMarkChimeButton.isEnabled = !isServiceRunning
         hourlyChimeButton.isEnabled = !isServiceRunning
+        quietHoursButton.isEnabled = true // Always enabled so users can adjust during runtime
     }
     
     private fun animateButtonVisibility(button: MaterialButton, visibility: Int) {
@@ -895,6 +1022,7 @@ class MainActivity : AppCompatActivity() {
         minuteMarkChimeSounds.forEach { (minute, sound) ->
             intent.putExtra("minute${minute}_isSystemSound", sound.isSystemSound)
             intent.putExtra("minute${minute}_resourceId", sound.resourceId)
+            intent.putExtra("minute${minute}_customUri", sound.customUri)
             if (sound.isSystemSound) {
                 val soundType = when (sound.resourceId) {
                     0 -> RingtoneManager.TYPE_NOTIFICATION
@@ -905,6 +1033,101 @@ class MainActivity : AppCompatActivity() {
                 intent.putExtra("minute${minute}_soundType", soundType)
             }
         }
+    }
+
+    private fun showQuietHoursDialog() {
+        val dialogView = layoutInflater.inflate(R.layout.dialog_quiet_hours, null)
+        
+        val quietHoursSwitch = dialogView.findViewById<com.google.android.material.switchmaterial.SwitchMaterial>(R.id.quietHoursSwitch)
+        val timeContainer = dialogView.findViewById<LinearLayout>(R.id.quietHoursTimeContainer)
+        val startTimeButton = dialogView.findViewById<MaterialButton>(R.id.startTimeButton)
+        val endTimeButton = dialogView.findViewById<MaterialButton>(R.id.endTimeButton)
+        
+        // Load saved settings
+        val prefs = getSharedPreferences("QuietHours", Context.MODE_PRIVATE)
+        val isEnabled = prefs.getBoolean("enabled", false)
+        var startHour = prefs.getInt("startHour", 2)
+        var startMinute = prefs.getInt("startMinute", 0)
+        var endHour = prefs.getInt("endHour", 9)
+        var endMinute = prefs.getInt("endMinute", 0)
+        
+        quietHoursSwitch.isChecked = isEnabled
+        timeContainer.visibility = if (isEnabled) View.VISIBLE else View.GONE
+        
+        // Format and display times
+        val formatTime = { hour: Int, minute: Int ->
+            val calendar = Calendar.getInstance().apply {
+                set(Calendar.HOUR_OF_DAY, hour)
+                set(Calendar.MINUTE, minute)
+            }
+            SimpleDateFormat("hh:mm a", Locale.getDefault()).format(calendar.time)
+        }
+        
+        startTimeButton.text = formatTime(startHour, startMinute)
+        endTimeButton.text = formatTime(endHour, endMinute)
+        
+        // Toggle time container visibility
+        quietHoursSwitch.setOnCheckedChangeListener { _, isChecked ->
+            timeContainer.visibility = if (isChecked) View.VISIBLE else View.GONE
+        }
+        
+        // Start time picker
+        startTimeButton.setOnClickListener {
+            val picker = MaterialTimePicker.Builder()
+                .setTimeFormat(TimeFormat.CLOCK_12H)
+                .setHour(startHour)
+                .setMinute(startMinute)
+                .setTitleText("Select sleep time")
+                .build()
+            
+            picker.addOnPositiveButtonClickListener {
+                startHour = picker.hour
+                startMinute = picker.minute
+                startTimeButton.text = formatTime(startHour, startMinute)
+            }
+            
+            picker.show(supportFragmentManager, "startTimePicker")
+        }
+        
+        // End time picker
+        endTimeButton.setOnClickListener {
+            val picker = MaterialTimePicker.Builder()
+                .setTimeFormat(TimeFormat.CLOCK_12H)
+                .setHour(endHour)
+                .setMinute(endMinute)
+                .setTitleText("Select wake time")
+                .build()
+            
+            picker.addOnPositiveButtonClickListener {
+                endHour = picker.hour
+                endMinute = picker.minute
+                endTimeButton.text = formatTime(endHour, endMinute)
+            }
+            
+            picker.show(supportFragmentManager, "endTimePicker")
+        }
+        
+        AlertDialog.Builder(this)
+            .setView(dialogView)
+            .setPositiveButton("Save") { _, _ ->
+                // Save quiet hours settings
+                val editor = prefs.edit()
+                editor.putBoolean("enabled", quietHoursSwitch.isChecked)
+                editor.putInt("startHour", startHour)
+                editor.putInt("startMinute", startMinute)
+                editor.putInt("endHour", endHour)
+                editor.putInt("endMinute", endMinute)
+                editor.apply()
+                
+                val status = if (quietHoursSwitch.isChecked) {
+                    "Quiet hours enabled: ${formatTime(startHour, startMinute)} - ${formatTime(endHour, endMinute)}"
+                } else {
+                    "Quiet hours disabled"
+                }
+                Toast.makeText(this, status, Toast.LENGTH_LONG).show()
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
     }
 
     override fun onDestroy() {

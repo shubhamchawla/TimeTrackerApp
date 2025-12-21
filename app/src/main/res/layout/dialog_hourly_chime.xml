@@ -15,7 +15,7 @@
             android:text="Configure Hourly Chimes"
             android:textSize="20sp"
             android:textStyle="bold"
-            android:textColor="#1A1A2E"
+            android:textColor="?android:attr/textColorPrimary"
             android:layout_marginBottom="16dp"/>
 
         <TextView
@@ -23,7 +23,7 @@
             android:layout_height="wrap_content"
             android:text="Select sound for each hour (0-23)"
             android:textSize="14sp"
-            android:textColor="#6B7280"
+            android:textColor="?android:attr/textColorSecondary"
             android:layout_marginBottom="16dp"/>
 
         <LinearLayout

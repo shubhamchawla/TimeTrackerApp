@@ -22,6 +22,30 @@ class SoundReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context?, intent: Intent?) {
         if (context != null) {
+            // Check if we're in quiet hours
+            if (isInQuietHours(context)) {
+                Log.d(TAG, "Currently in quiet hours - skipping sound playback")
+                
+                // Still need to reschedule alarms even during quiet hours
+                val interval = intent?.getIntExtra("interval", -1) ?: -1
+                val intervalType = intent?.getStringExtra("intervalType") ?: "normal"
+                val isDailyAlarm = intent?.getBooleanExtra("isDailyAlarm", false) ?: false
+                val hour = intent?.getIntExtra("hour", -1) ?: -1
+                val minute = intent?.getIntExtra("minute", -1) ?: -1
+                val isSystemSound = intent?.getBooleanExtra("isSystemSound", true) ?: true
+                val soundType = intent?.getIntExtra("soundType", RingtoneManager.TYPE_NOTIFICATION) ?: RingtoneManager.TYPE_NOTIFICATION
+                val soundResId = intent?.getIntExtra("soundResId", 0) ?: 0
+                
+                if (interval > 0 && intervalType != "no_repeat") {
+                    rescheduleNextAlarm(context, interval, intervalType, isSystemSound, soundType, soundResId)
+                } else if (isDailyAlarm && hour >= 0 && minute >= 0) {
+                    rescheduleDailyAlarm(context, hour, minute, isSystemSound, soundType, soundResId)
+                } else if (intent?.action == "ACTION_HOURLY_MINUTE_MARK_CHIME") {
+                    rescheduleNextMinuteMarkChime(context, intent)
+                }
+                return
+            }
+            
             // Check if this is an hourly minute mark chime
             if (intent?.action == "ACTION_HOURLY_MINUTE_MARK_CHIME") {
                 handleHourlyMinuteMarkChime(context, intent)
@@ -31,6 +55,13 @@ class SoundReceiver : BroadcastReceiver() {
             var isSystemSound = intent?.getBooleanExtra("isSystemSound", true) ?: true
             var soundType = intent?.getIntExtra("soundType", RingtoneManager.TYPE_NOTIFICATION)
                 ?: RingtoneManager.TYPE_NOTIFICATION
+            
+            // Check for forced alarm sound (resuming after quiet hours)
+            if (intent?.getBooleanExtra("forceAlarmSound", false) == true) {
+                Log.d(TAG, "Resuming after quiet hours - forcing ALARM sound type")
+                soundType = RingtoneManager.TYPE_ALARM
+            }
+
             var soundResId = intent?.getIntExtra("soundResId", 0) ?: 0
             val interval = intent?.getIntExtra("interval", -1) ?: -1
             val intervalType = intent?.getStringExtra("intervalType") ?: "normal"
@@ -119,27 +150,7 @@ class SoundReceiver : BroadcastReceiver() {
                 return
             }
 
-            val intent = Intent(context, SoundReceiver::class.java)
-            intent.putExtra("interval", interval)
-            intent.putExtra("intervalType", intervalType)
-            intent.putExtra("isSystemSound", isSystemSound)
-            if (isSystemSound) {
-                intent.putExtra("soundType", soundType)
-            } else {
-                intent.putExtra("soundResId", soundResId)
-            }
-            
-            // Always pass minute mark chime settings so hourly chimes work independently
-            copyMinuteMarkChimeSettings(context, intent)
-
-            val flags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-            } else {
-                PendingIntent.FLAG_UPDATE_CURRENT
-            }
-
-            val pendingIntent = PendingIntent.getBroadcast(context, 0, intent, flags)
-
+            // Calculate trigger time first to determine if we need to force alarm sound
             val calendar = Calendar.getInstance()
             val triggerTime: Long
 
@@ -188,6 +199,36 @@ class SoundReceiver : BroadcastReceiver() {
                     }
                 }
             }
+
+            val intent = Intent(context, SoundReceiver::class.java)
+            intent.putExtra("interval", interval)
+            intent.putExtra("intervalType", intervalType)
+            intent.putExtra("isSystemSound", isSystemSound)
+            if (isSystemSound) {
+                intent.putExtra("soundType", soundType)
+            } else {
+                intent.putExtra("soundResId", soundResId)
+            }
+            
+            // Check if we are resuming after quiet hours
+            val currentlyInQuietHours = isTimeInQuietHours(context, System.currentTimeMillis())
+            val nextInQuietHours = isTimeInQuietHours(context, triggerTime)
+            
+            if (currentlyInQuietHours && !nextInQuietHours) {
+                Log.d(TAG, "Next alarm will resume after quiet hours - setting forceAlarmSound")
+                intent.putExtra("forceAlarmSound", true)
+            }
+
+            // Always pass minute mark chime settings so hourly chimes work independently
+            copyMinuteMarkChimeSettings(context, intent)
+
+            val flags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            } else {
+                PendingIntent.FLAG_UPDATE_CURRENT
+            }
+
+            val pendingIntent = PendingIntent.getBroadcast(context, 0, intent, flags)
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                 val canScheduleExact = canScheduleExactAlarms(context, alarmManager)
@@ -455,6 +496,38 @@ class SoundReceiver : BroadcastReceiver() {
         }
     }
     
+    private fun playCustomUriSound(context: Context, uriString: String) {
+        try {
+            Log.d(TAG, "Attempting to play custom URI sound: $uriString")
+
+            val soundUri = Uri.parse(uriString)
+            val ringtone = RingtoneManager.getRingtone(context, soundUri)
+
+            if (ringtone != null) {
+                Log.d(TAG, "Custom URI ringtone object created successfully")
+                ringtone.play()
+                Log.d(TAG, "✓ Playing custom URI sound - isPlaying: ${ringtone.isPlaying}")
+
+                // Stop the ringtone after 5 seconds
+                Handler(Looper.getMainLooper()).postDelayed({
+                    try {
+                        if (ringtone.isPlaying) {
+                            ringtone.stop()
+                            Log.d(TAG, "✓ Stopped custom URI sound")
+                        }
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Error stopping custom URI ringtone", e)
+                    }
+                }, 5000)
+            } else {
+                Log.e(TAG, "✗ Custom URI ringtone is null - cannot play sound")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "✗ EXCEPTION while playing custom URI sound", e)
+            e.printStackTrace()
+        }
+    }
+    
     private fun copyMinuteMarkChimeSettings(context: Context, intent: Intent) {
         // Load minute mark chime settings from SharedPreferences and copy to intent
         val prefs = context.getSharedPreferences("MinuteMarkChimes", Context.MODE_PRIVATE)
@@ -463,10 +536,12 @@ class SoundReceiver : BroadcastReceiver() {
             val isSystemSound = prefs.getBoolean("${minute}_isSystemSound", true)
             val resourceId = prefs.getInt("${minute}_resourceId", 0)
             val name = prefs.getString("${minute}_name", null)
+            val customUri = prefs.getString("${minute}_customUri", null)
             
             if (name != null) {
                 intent.putExtra("minute${minute}_isSystemSound", isSystemSound)
                 intent.putExtra("minute${minute}_resourceId", resourceId)
+                intent.putExtra("minute${minute}_customUri", customUri)
                 if (isSystemSound) {
                     val soundType = when (resourceId) {
                         0 -> RingtoneManager.TYPE_NOTIFICATION
@@ -490,48 +565,53 @@ class SoundReceiver : BroadcastReceiver() {
             Log.d(TAG, "Current time: ${String.format("%02d:%02d", currentHour, currentMinute)}")
             Log.d(TAG, "Current minute: $currentMinute")
             
-            // Determine which minute mark this is (0, 10, 20, 30, 40, 50)
-            val minuteMark = when {
-                currentMinute in 0..4 -> 0
-                currentMinute in 10..14 -> 10
-                currentMinute in 20..24 -> 20
-                currentMinute in 30..34 -> 30
-                currentMinute in 40..44 -> 40
-                currentMinute in 50..54 -> 50
-                else -> -1 // Not a 10-minute mark
-            }
+            // Determine which minute mark this should be (0, 10, 20, 30, 40, 50)
+            // Round to nearest 10-minute mark
+            val minuteMark = ((currentMinute + 5) / 10) * 10
+            val normalizedMinuteMark = if (minuteMark >= 60) 0 else minuteMark
             
-            if (minuteMark == -1) {
-                Log.d(TAG, "Not a 10-minute mark, skipping")
+            // Check if we're within acceptable window (within 5 minutes of the mark)
+            val minuteDiff = Math.abs(currentMinute - normalizedMinuteMark)
+            val isWithinWindow = minuteDiff <= 5 || minuteDiff >= 55 // Handle wrap-around at :00
+            
+            if (!isWithinWindow) {
+                Log.d(TAG, "Current time ($currentMinute) is too far from minute mark ($normalizedMinuteMark), skipping")
                 rescheduleNextMinuteMarkChime(context, intent)
                 return
             }
             
-            Log.d(TAG, "Minute mark detected: :$minuteMark")
+            Log.d(TAG, "Minute mark detected: :$normalizedMinuteMark (current: :$currentMinute)")
             
             // Check if there's a custom sound for this minute mark
-            val hasCustomSound = intent.hasExtra("minute${minuteMark}_isSystemSound")
+            val hasCustomSound = intent.hasExtra("minute${normalizedMinuteMark}_isSystemSound")
             if (hasCustomSound) {
-                val isSystemSound = intent.getBooleanExtra("minute${minuteMark}_isSystemSound", true)
-                val soundResId = intent.getIntExtra("minute${minuteMark}_resourceId", 0)
+                val isSystemSound = intent.getBooleanExtra("minute${normalizedMinuteMark}_isSystemSound", true)
+                val soundResId = intent.getIntExtra("minute${normalizedMinuteMark}_resourceId", 0)
                 
                 Log.d(TAG, "Custom sound found - isSystemSound: $isSystemSound, resourceId: $soundResId")
                 
+                // Check if there's a custom URI
+                val customUri = intent.getStringExtra("minute${normalizedMinuteMark}_customUri")
+                
                 // Play sound only if not "No Sound" option (resourceId != -1)
                 if (soundResId != -1) {
-                    if (isSystemSound) {
-                        val soundType = intent.getIntExtra("minute${minuteMark}_soundType", RingtoneManager.TYPE_NOTIFICATION)
+                    if (customUri != null) {
+                        // Play custom URI sound
+                        playCustomUriSound(context, customUri)
+                        Log.d(TAG, "✓ Playing custom URI minute mark chime for :$normalizedMinuteMark")
+                    } else if (isSystemSound) {
+                        val soundType = intent.getIntExtra("minute${normalizedMinuteMark}_soundType", RingtoneManager.TYPE_NOTIFICATION)
                         playSound(context, soundType)
-                        Log.d(TAG, "✓ Playing minute mark chime for :$minuteMark (system sound)")
+                        Log.d(TAG, "✓ Playing minute mark chime for :$normalizedMinuteMark (system sound)")
                     } else {
                         playCustomSound(context, soundResId)
-                        Log.d(TAG, "✓ Playing custom minute mark chime for :$minuteMark")
+                        Log.d(TAG, "✓ Playing custom minute mark chime for :$normalizedMinuteMark")
                     }
                 } else {
-                    Log.d(TAG, "No sound configured for minute :$minuteMark (resourceId = -1)")
+                    Log.d(TAG, "No sound configured for minute :$normalizedMinuteMark (resourceId = -1)")
                 }
             } else {
-                Log.d(TAG, "No custom sound configured for minute :$minuteMark")
+                Log.d(TAG, "No custom sound configured for minute :$normalizedMinuteMark")
             }
             
             // Reschedule for next 10-minute mark
@@ -539,7 +619,7 @@ class SoundReceiver : BroadcastReceiver() {
             
             // Show a toast notification
             Handler(Looper.getMainLooper()).post {
-                Toast.makeText(context, "🔔 Minute Mark Chime :$minuteMark!", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, "🔔 Minute Mark Chime :$normalizedMinuteMark!", Toast.LENGTH_SHORT).show()
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error handling minute mark chime", e)
@@ -604,31 +684,28 @@ class SoundReceiver : BroadcastReceiver() {
             
             Log.d(TAG, "Scheduling next minute mark chime at ${calendar.get(Calendar.HOUR_OF_DAY)}:${String.format("%02d", calendar.get(Calendar.MINUTE))}")
             
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                val canScheduleExact = canScheduleExactAlarms(context, alarmManager)
+            // Use setAlarmClock for highest priority - bypasses Doze and all restrictions
+            // This ensures minute mark chimes fire at the exact time
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
                 try {
-                    if (canScheduleExact) {
-                        alarmManager.setExactAndAllowWhileIdle(
-                            AlarmManager.RTC_WAKEUP,
-                            triggerTime,
-                            pendingIntent
-                        )
-                        Log.d(TAG, "✓ Minute mark chime scheduled (exact) at ${calendar.get(Calendar.HOUR_OF_DAY)}:${String.format("%02d", calendar.get(Calendar.MINUTE))}")
+                    val showIntent = Intent(context, MainActivity::class.java)
+                    val showPendingIntent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                        PendingIntent.getActivity(context, 0, showIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
                     } else {
-                        alarmManager.set(
-                            AlarmManager.RTC_WAKEUP,
-                            triggerTime,
-                            pendingIntent
-                        )
-                        Log.d(TAG, "✓ Minute mark chime scheduled (inexact) at ${calendar.get(Calendar.HOUR_OF_DAY)}:${String.format("%02d", calendar.get(Calendar.MINUTE))}")
+                        PendingIntent.getActivity(context, 0, showIntent, PendingIntent.FLAG_UPDATE_CURRENT)
                     }
-                } catch (e: SecurityException) {
-                    Log.w(TAG, "SecurityException: Cannot schedule exact chime, falling back to inexact", e)
-                    alarmManager.set(
-                        AlarmManager.RTC_WAKEUP,
-                        triggerTime,
-                        pendingIntent
-                    )
+                    
+                    val alarmClockInfo = AlarmManager.AlarmClockInfo(triggerTime, showPendingIntent)
+                    alarmManager.setAlarmClock(alarmClockInfo, pendingIntent)
+                    Log.d(TAG, "✓ Minute mark chime scheduled (HIGH PRIORITY - setAlarmClock) at ${calendar.get(Calendar.HOUR_OF_DAY)}:${String.format("%02d", calendar.get(Calendar.MINUTE))}")
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed to use setAlarmClock, falling back", e)
+                    // Fallback to exact alarm
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                        alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent)
+                    } else {
+                        alarmManager.set(AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent)
+                    }
                 }
             } else {
                 alarmManager.set(
@@ -641,6 +718,42 @@ class SoundReceiver : BroadcastReceiver() {
         } catch (e: Exception) {
             Log.e(TAG, "Error rescheduling minute mark chime", e)
             e.printStackTrace()
+        }
+    }
+    
+    private fun isInQuietHours(context: Context): Boolean {
+        return isTimeInQuietHours(context, System.currentTimeMillis())
+    }
+
+    private fun isTimeInQuietHours(context: Context, timeInMillis: Long): Boolean {
+        val prefs = context.getSharedPreferences("QuietHours", Context.MODE_PRIVATE)
+        val isEnabled = prefs.getBoolean("enabled", false)
+        
+        if (!isEnabled) {
+            return false
+        }
+        
+        val startHour = prefs.getInt("startHour", 2)
+        val startMinute = prefs.getInt("startMinute", 0)
+        val endHour = prefs.getInt("endHour", 9)
+        val endMinute = prefs.getInt("endMinute", 0)
+        
+        val calendar = Calendar.getInstance()
+        calendar.timeInMillis = timeInMillis
+        val currentHour = calendar.get(Calendar.HOUR_OF_DAY)
+        val currentMinute = calendar.get(Calendar.MINUTE)
+        
+        // Convert times to minutes since midnight for easier comparison
+        val currentTimeInMinutes = currentHour * 60 + currentMinute
+        val startTimeInMinutes = startHour * 60 + startMinute
+        val endTimeInMinutes = endHour * 60 + endMinute
+        
+        return if (startTimeInMinutes < endTimeInMinutes) {
+            // Normal case: e.g., 9 AM to 5 PM
+            currentTimeInMinutes >= startTimeInMinutes && currentTimeInMinutes < endTimeInMinutes
+        } else {
+            // Overnight case: e.g., 10 PM to 6 AM
+            currentTimeInMinutes >= startTimeInMinutes || currentTimeInMinutes < endTimeInMinutes
         }
     }
 }
