@@ -321,10 +321,8 @@ class SoundService : Service() {
             intent.action = "ACTION_HOURLY_MINUTE_MARK_CHIME"
             intent.putExtra("interval", 10)
             intent.putExtra("intervalType", "minute_mark_chime")
-            intent.putExtra("isSystemSound", true)
-            intent.putExtra("soundType", RingtoneManager.TYPE_NOTIFICATION)
             
-            // Copy minute mark chime settings
+            // Copy minute mark chime settings - this will set the correct sounds for each minute mark
             copyMinuteMarkChimeSettings(intent)
             
             val flags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {

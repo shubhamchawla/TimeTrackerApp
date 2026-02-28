@@ -55,13 +55,6 @@ class SoundReceiver : BroadcastReceiver() {
             var isSystemSound = intent?.getBooleanExtra("isSystemSound", true) ?: true
             var soundType = intent?.getIntExtra("soundType", RingtoneManager.TYPE_NOTIFICATION)
                 ?: RingtoneManager.TYPE_NOTIFICATION
-            
-            // Check for forced alarm sound (resuming after quiet hours)
-            if (intent?.getBooleanExtra("forceAlarmSound", false) == true) {
-                Log.d(TAG, "Resuming after quiet hours - forcing ALARM sound type")
-                soundType = RingtoneManager.TYPE_ALARM
-            }
-
             var soundResId = intent?.getIntExtra("soundResId", 0) ?: 0
             val interval = intent?.getIntExtra("interval", -1) ?: -1
             val intervalType = intent?.getStringExtra("intervalType") ?: "normal"
@@ -210,15 +203,6 @@ class SoundReceiver : BroadcastReceiver() {
                 intent.putExtra("soundResId", soundResId)
             }
             
-            // Check if we are resuming after quiet hours
-            val currentlyInQuietHours = isTimeInQuietHours(context, System.currentTimeMillis())
-            val nextInQuietHours = isTimeInQuietHours(context, triggerTime)
-            
-            if (currentlyInQuietHours && !nextInQuietHours) {
-                Log.d(TAG, "Next alarm will resume after quiet hours - setting forceAlarmSound")
-                intent.putExtra("forceAlarmSound", true)
-            }
-
             // Always pass minute mark chime settings so hourly chimes work independently
             copyMinuteMarkChimeSettings(context, intent)
 
@@ -640,10 +624,8 @@ class SoundReceiver : BroadcastReceiver() {
             newIntent.action = "ACTION_HOURLY_MINUTE_MARK_CHIME"
             newIntent.putExtra("interval", 10)
             newIntent.putExtra("intervalType", "minute_mark_chime")
-            newIntent.putExtra("isSystemSound", true)
-            newIntent.putExtra("soundType", RingtoneManager.TYPE_NOTIFICATION)
             
-            // Copy minute mark chime settings
+            // Copy minute mark chime settings - this will set the correct sounds for each minute mark
             copyMinuteMarkChimeSettings(context, newIntent)
             
             val flags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
