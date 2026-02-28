@@ -1,274 +1,331 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="?android:attr/colorBackground">
+    android:background="@color/background">
 
-    <LinearLayout
+    <!-- App Bar -->
+    <com.google.android.material.appbar.AppBarLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:padding="24dp">
+        android:background="@color/surface"
+        app:elevation="0dp">
 
-        <!-- Header -->
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Sound Repeater"
-            android:textSize="32sp"
-            android:textColor="?android:attr/textColorPrimary"
-            android:textStyle="bold"
-            android:layout_marginBottom="8dp"/>
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Schedule your sounds effortlessly"
-            android:textSize="14sp"
-            android:textColor="?android:attr/textColorSecondary"
-            android:layout_marginBottom="24dp"/>
-
-        <!-- Interval Card - HIDDEN -->
-        <com.google.android.material.card.MaterialCardView
-            android:id="@+id/intervalCard"
+        <com.google.android.material.appbar.MaterialToolbar
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            app:cardCornerRadius="16dp"
-            app:cardElevation="2dp"
-            android:layout_marginBottom="16dp"
-            android:visibility="gone">
+            android:layout_height="?attr/actionBarSize"
+            android:background="@color/surface">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="20dp">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical"
-                    android:layout_marginBottom="12dp">
-
-                    <ImageView
-                        android:layout_width="24dp"
-                        android:layout_height="24dp"
-                        android:src="@android:drawable/ic_menu_recent_history"
-                        android:layout_marginEnd="12dp"/>
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Repeat Interval"
-                        android:textSize="16sp"
-                        android:textColor="?android:attr/textColorPrimary"
-                        android:textStyle="bold"/>
-                </LinearLayout>
-
-                <Spinner
-                    android:id="@+id/intervalSpinner"
-                    android:layout_width="match_parent"
-                    android:layout_height="50dp"
-                    android:background="@android:drawable/btn_dropdown"
-                    android:paddingStart="16dp"
-                    android:paddingEnd="16dp"/>
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
-
-        <!-- Configuration Buttons -->
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/minuteMarkChimeButton"
-            android:layout_width="match_parent"
-            android:layout_height="56dp"
-            android:text="🕐 Configure Minute Mark Chimes"
-            android:textSize="16sp"
-            android:textAllCaps="false"
-            app:cornerRadius="12dp"
-            android:backgroundTint="#8B5CF6"
-            android:textColor="#FFFFFF"
-            android:layout_marginBottom="8dp"
-            style="@style/Widget.MaterialComponents.Button"/>
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/hourlyChimeButton"
-            android:layout_width="match_parent"
-            android:layout_height="56dp"
-            android:text="🕐 Configure Hourly Chimes"
-            android:textSize="16sp"
-            android:textAllCaps="false"
-            app:cornerRadius="12dp"
-            android:backgroundTint="#8B5CF6"
-            android:textColor="#FFFFFF"
-            android:layout_marginBottom="8dp"
-            style="@style/Widget.MaterialComponents.Button"/>
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/quietHoursButton"
-            android:layout_width="match_parent"
-            android:layout_height="56dp"
-            android:text="🌙 Configure Quiet Hours"
-            android:textSize="16sp"
-            android:textAllCaps="false"
-            app:cornerRadius="12dp"
-            android:backgroundTint="#EC4899"
-            android:textColor="#FFFFFF"
-            android:layout_marginBottom="16dp"
-            style="@style/Widget.MaterialComponents.Button"/>
-
-        <!-- Sound Card -->
-        <com.google.android.material.card.MaterialCardView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            app:cardCornerRadius="16dp"
-            app:cardElevation="2dp"
-            android:layout_marginBottom="16dp">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="20dp">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical"
-                    android:layout_marginBottom="12dp">
-
-                    <ImageView
-                        android:layout_width="24dp"
-                        android:layout_height="24dp"
-                        android:src="@android:drawable/ic_lock_silent_mode_off"
-                        android:layout_marginEnd="12dp"/>
-
-                    <TextView
-                        android:layout_width="0dp"
-                        android:layout_weight="1"
-                        android:layout_height="wrap_content"
-                        android:text="Select Sound"
-                        android:textSize="16sp"
-                        android:textColor="?android:attr/textColorPrimary"
-                        android:textStyle="bold"/>
-
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/testSoundButton"
-                        android:layout_width="wrap_content"
-                        android:layout_height="36dp"
-                        android:text="🔊 Test"
-                        android:textSize="12sp"
-                        android:textAllCaps="false"
-                        app:cornerRadius="8dp"
-                        android:backgroundTint="#6366F1"
-                        android:textColor="#FFFFFF"
-                        android:paddingStart="12dp"
-                        android:paddingEnd="12dp"
-                        style="@style/Widget.MaterialComponents.Button"/>
-                </LinearLayout>
-
-                <Spinner
-                    android:id="@+id/soundSpinner"
-                    android:layout_width="match_parent"
-                    android:layout_height="50dp"
-                    android:background="@android:drawable/btn_dropdown"
-                    android:paddingStart="16dp"
-                    android:paddingEnd="16dp"/>
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
-
-        <!-- Custom Time Button -->
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/customTimeButton"
-            android:layout_width="match_parent"
-            android:layout_height="56dp"
-            android:text="⏰ Set Custom Daily Time"
-            android:textSize="16sp"
-            android:textAllCaps="false"
-            app:cornerRadius="12dp"
-            android:backgroundTint="#F59E0B"
-            android:textColor="#FFFFFF"
-            android:layout_marginBottom="24dp"
-            style="@style/Widget.MaterialComponents.Button"/>
-
-        <!-- Control Buttons -->
-        <FrameLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="24dp">
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/startButton"
-                android:layout_width="match_parent"
-                android:layout_height="56dp"
-                android:text="▶ Start Service"
-                android:textSize="16sp"
-                android:textAllCaps="false"
-                app:cornerRadius="12dp"
-                android:backgroundTint="#10B981"
-                android:textColor="#FFFFFF"
-                android:visibility="visible"
-                style="@style/Widget.MaterialComponents.Button"/>
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/stopButton"
-                android:layout_width="match_parent"
-                android:layout_height="56dp"
-                android:text="⏸ Stop Service"
-                android:textSize="16sp"
-                android:textAllCaps="false"
-                app:cornerRadius="12dp"
-                android:backgroundTint="#EF4444"
-                android:textColor="#FFFFFF"
-                android:visibility="gone"
-                style="@style/Widget.MaterialComponents.Button"/>
-        </FrameLayout>
-
-        <!-- Status Card -->
-        <com.google.android.material.card.MaterialCardView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            app:cardCornerRadius="16dp"
-            app:cardElevation="2dp"
-            app:cardBackgroundColor="#6366F1">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="20dp">
+                android:paddingEnd="16dp">
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Status"
-                    android:textSize="14sp"
-                    android:textColor="#FFFFFF"
-                    android:alpha="0.8"
-                    android:layout_marginBottom="8dp"/>
+                    android:text="Sound Repeater"
+                    android:textSize="20sp"
+                    android:textColor="@color/on_surface"
+                    android:textStyle="bold"/>
 
                 <TextView
                     android:id="@+id/statusText"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Ready to start"
-                    android:textSize="16sp"
-                    android:textColor="#FFFFFF"
-                    android:textStyle="bold"
-                    android:layout_marginBottom="8dp"/>
-
-                <TextView
-                    android:id="@+id/nextRingText"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text=""
-                    android:textSize="14sp"
-                    android:textColor="#FFFFFF"
-                    android:alpha="0.9"
-                    android:visibility="gone"/>
+                    android:textSize="12sp"
+                    android:textColor="@color/on_surface_variant"
+                    android:layout_marginTop="2dp"/>
             </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
+        </com.google.android.material.appbar.MaterialToolbar>
+    </com.google.android.material.appbar.AppBarLayout>
 
-    </LinearLayout>
-</ScrollView>
+    <!-- Main Content -->
+    <androidx.core.widget.NestedScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        app:layout_behavior="@string/appbar_scrolling_view_behavior">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <!-- Next Ring Card -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:cardCornerRadius="20dp"
+                app:cardElevation="0dp"
+                app:strokeWidth="0dp"
+                android:backgroundTint="@color/primary_container"
+                android:layout_marginBottom="20dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="24dp"
+                    android:gravity="center">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="⏰"
+                        android:textSize="48sp"
+                        android:layout_marginBottom="12dp"/>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Next Ring"
+                        android:textSize="14sp"
+                        android:textColor="@color/on_primary_container"
+                        android:alpha="0.7"
+                        android:layout_marginBottom="4dp"/>
+
+                    <TextView
+                        android:id="@+id/nextRingText"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Not scheduled"
+                        android:textSize="18sp"
+                        android:textColor="@color/on_primary_container"
+                        android:textStyle="bold"
+                        android:gravity="center"/>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Sound Selection Card -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="0dp"
+                app:strokeWidth="1dp"
+                app:strokeColor="@color/outline"
+                android:backgroundTint="@color/surface"
+                android:layout_marginBottom="12dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="20dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:layout_marginBottom="16dp">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_weight="1"
+                            android:layout_height="wrap_content"
+                            android:text="🔊 Sound"
+                            android:textSize="16sp"
+                            android:textColor="@color/on_surface"
+                            android:textStyle="bold"/>
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/testSoundButton"
+                            android:layout_width="wrap_content"
+                            android:layout_height="40dp"
+                            android:text="Test"
+                            android:textSize="13sp"
+                            android:textAllCaps="false"
+                            app:cornerRadius="20dp"
+                            app:icon="@android:drawable/ic_lock_silent_mode_off"
+                            app:iconSize="16dp"
+                            app:iconPadding="4dp"
+                            android:paddingStart="16dp"
+                            android:paddingEnd="16dp"
+                            style="@style/Widget.Material3.Button.TonalButton"/>
+                    </LinearLayout>
+
+                    <Spinner
+                        android:id="@+id/soundSpinner"
+                        android:layout_width="match_parent"
+                        android:layout_height="56dp"
+                        android:background="@drawable/spinner_background"
+                        android:paddingStart="16dp"
+                        android:paddingEnd="16dp"/>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Interval Card (Hidden by default) -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/intervalCard"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="0dp"
+                app:strokeWidth="1dp"
+                app:strokeColor="@color/outline"
+                android:backgroundTint="@color/surface"
+                android:layout_marginBottom="12dp"
+                android:visibility="gone">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="20dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="⏱️ Repeat Interval"
+                        android:textSize="16sp"
+                        android:textColor="@color/on_surface"
+                        android:textStyle="bold"
+                        android:layout_marginBottom="16dp"/>
+
+                    <Spinner
+                        android:id="@+id/intervalSpinner"
+                        android:layout_width="match_parent"
+                        android:layout_height="56dp"
+                        android:background="@drawable/spinner_background"
+                        android:paddingStart="16dp"
+                        android:paddingEnd="16dp"/>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Quick Actions Section -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Quick Actions"
+                android:textSize="14sp"
+                android:textColor="@color/on_surface_variant"
+                android:textStyle="bold"
+                android:layout_marginTop="8dp"
+                android:layout_marginBottom="12dp"
+                android:layout_marginStart="4dp"/>
+
+            <!-- Action Buttons Grid -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:layout_marginBottom="12dp">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/customTimeButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:text="Set Custom Daily Time"
+                    android:textSize="15sp"
+                    android:textAllCaps="false"
+                    app:cornerRadius="12dp"
+                    app:icon="@android:drawable/ic_menu_my_calendar"
+                    app:iconGravity="start"
+                    app:iconPadding="12dp"
+                    android:gravity="start|center_vertical"
+                    android:paddingStart="20dp"
+                    android:layout_marginBottom="8dp"
+                    style="@style/Widget.Material3.Button.TonalButton"/>
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/minuteMarkChimeButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:text="Minute Mark Chimes"
+                    android:textSize="15sp"
+                    android:textAllCaps="false"
+                    app:cornerRadius="12dp"
+                    app:icon="@android:drawable/ic_menu_recent_history"
+                    app:iconGravity="start"
+                    app:iconPadding="12dp"
+                    android:gravity="start|center_vertical"
+                    android:paddingStart="20dp"
+                    android:layout_marginBottom="8dp"
+                    style="@style/Widget.Material3.Button.TonalButton"/>
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/hourlyChimeButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:text="Hourly Chimes"
+                    android:textSize="15sp"
+                    android:textAllCaps="false"
+                    app:cornerRadius="12dp"
+                    app:icon="@android:drawable/ic_menu_recent_history"
+                    app:iconGravity="start"
+                    app:iconPadding="12dp"
+                    android:gravity="start|center_vertical"
+                    android:paddingStart="20dp"
+                    android:layout_marginBottom="8dp"
+                    style="@style/Widget.Material3.Button.TonalButton"/>
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/quietHoursButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:text="Quiet Hours"
+                    android:textSize="15sp"
+                    android:textAllCaps="false"
+                    app:cornerRadius="12dp"
+                    app:icon="@android:drawable/ic_lock_silent_mode"
+                    app:iconGravity="start"
+                    app:iconPadding="12dp"
+                    android:gravity="start|center_vertical"
+                    android:paddingStart="20dp"
+                    style="@style/Widget.Material3.Button.TonalButton"/>
+            </LinearLayout>
+
+            <!-- Spacer -->
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="80dp"/>
+
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
+
+    <!-- Floating Action Button -->
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:background="@drawable/fab_background"
+        android:padding="16dp">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/startButton"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:text="Start Service"
+            android:textSize="16sp"
+            android:textAllCaps="false"
+            android:textStyle="bold"
+            app:cornerRadius="28dp"
+            app:icon="@android:drawable/ic_media_play"
+            app:iconGravity="textStart"
+            app:iconPadding="8dp"
+            android:visibility="visible"
+            style="@style/Widget.Material3.Button"/>
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/stopButton"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:text="Stop Service"
+            android:textSize="16sp"
+            android:textAllCaps="false"
+            android:textStyle="bold"
+            app:cornerRadius="28dp"
+            app:icon="@android:drawable/ic_media_pause"
+            app:iconGravity="textStart"
+            app:iconPadding="8dp"
+            android:backgroundTint="@color/error"
+            android:visibility="gone"
+            style="@style/Widget.Material3.Button"/>
+    </FrameLayout>
+
+</androidx.coordinatorlayout.widget.CoordinatorLayout>
